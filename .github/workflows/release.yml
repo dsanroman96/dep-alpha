@@ -81,3 +81,22 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: ${{ steps.version.outputs.tag }}
           body: "Automated release for dep-alpha."
+
+      - name: Notify consumer-alpha
+        env:
+          TARGET_REPO: ${{ secrets.CONSUMER_ALPHA_REPO }}
+          DISPATCH_TOKEN: ${{ secrets.CONSUMER_REPO_PAT }}
+          VERSION_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${TARGET_REPO}" ] || [ -z "${DISPATCH_TOKEN}" ]; then
+            echo "Missing required secrets: CONSUMER_ALPHA_REPO or CONSUMER_REPO_PAT"
+            exit 1
+          fi
+
+          curl --fail-with-body -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${DISPATCH_TOKEN}" \
+            "https://api.github.com/repos/${TARGET_REPO}/dispatches" \
+            -d "{\"event_type\":\"dep-alpha-released\",\"client_payload\":{\"version\":\"${VERSION_TAG}\"}}"
